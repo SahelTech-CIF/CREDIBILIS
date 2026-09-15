@@ -1,0 +1,11 @@
+lightgbm>=3.3.0
+networkx>=3.0
+joblib>=1.2.0
+weasyprint>=59.0
+Django>=4.2.0
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.2.0
+# Note : `gower` n'est volontairement plus requis. La distance de Gower est
+# implémentée dans `cohort_engine.py` (tolérante aux NaN et aux colonnes texte),
+# la lib publiée plantant avec les versions récentes de pandas/numpy.
