@@ -1,117 +1,204 @@
-# Plan d'Attaque — Implémentation du Système CREDIBILIS
+# Plan Technique Complet de CREDIBILIS — Architecture et Jalons d'Implémentation
 
-## 1. Principes Directeurs
-* **Séparation stricte** : Moteurs Python purs (`credibilis_collecte`, etc.) $\rightarrow$ Backend Django + DRF $\rightarrow$ Frontend React SPA.
-* **Zéro Django Templates / Zéro HTMX / Zéro Alpine** : L'interface utilisateur est une SPA React indépendante consommant `/api/v1/...`.
-* **Tests sans framework** : Les moteurs métier s'exécutent et se testent sans `DJANGO_SETTINGS_MODULE`.
+Ce document constitue la feuille de route technique et la référence opérationnelle pour l'ensemble des développeurs et agents IA travaillant sur le projet CREDIBILIS.
 
 ---
 
-## 2. Découpage par Phases et Jalons
-
-### Phase 0 — Documentation & Alignement Équipe (Terminée)
-* **Objectif** : Formaliser la constitution (`AGENTS.md`), le corpus d'architecture (`00` à `15`), les ADRs et les spécifications.
-* **Livrable** : Répertoire `docs/` consolidé et synchronisé sur `main`.
-
-### Phase 1 — Socle du Package `credibilis_collecte`
-* **Objectif** : Créer le package Python pur et son architecture modulaire.
-* **Contenu** :
-  * Définition des structures de domaine : `RawRecord`, `CanonicalRecord`, `ExternalIdentifier`, `Provenance`, `DataIssue`, `ImportResult`.
-  * Règle de dépendance : Aucun import `django.*` ou `rest_framework.*`.
-* **Definition of Done** : `pytest packages/collecte/tests/` passe à 100% sans Django.
-
-### Phase 2 — Schéma Canonique & Lecteurs Multi-Formats
-* **Objectif** : Ingestion neutre des flux de données.
-* **Contenu** :
-  * Lecteurs : CSV (délimiteurs variables), Excel/XLSX/XLSM (multi-feuilles), JSON.
-  * Inspection initiale (`inspect_source`) : extraction des feuilles, colonnes et métadonnées.
-
-### Phase 3 — Moteur de Mapping & Normalisation
-* **Objectif** : Réconciliation des terminologies hétérogènes vers le schéma canonique.
-* **Contenu** :
-  * Registre des profils de mapping par institution (KAFO, etc.).
-  * Détection d'alias et suggestions automatiques.
-  * Normalisation robuste : devises FCFA, numéros de téléphone MSISDN, dates, types catégoriels.
-
-### Phase 4 — Validation & Moteur Data Quality
-* **Objectif** : Détection des anomalies et calcul des scores d'intégrité.
-* **Contenu** :
-  * Classification des anomalies à 4 niveaux : `BLOCKING`, `ERROR`, `WARNING`, `INFO`.
-  * Métriques de qualité : complétude, validité, cohérence, unicité, traçabilité.
-
-### Phase 5 — Identité, Provenance & Rapprochement
-* **Objectif** : Résolution d'entité et traçabilité par cellule.
-* **Contenu** :
-  * Génération d'identifiants internes universels (UUIDv7 ordonnançables).
-  * Gestion des tuples `(institution_id, entity_type, identifier_type, value)`.
-  * Rapprochement d'entités (Record Linkage) : matrice multicritère (téléphone, NINA, date naissance, caisse).
-  * **Garde-fou** : Interdiction absolue de fusionner sur `nom + prénom` seul.
-  * Matrice de provenance : source, agent, niveau de preuve, lot d'import.
-
-### Phase 6 — Backend Django + Django REST Framework (DRF)
-* **Objectif** : Hôte applicatif, persistance PostgreSQL, sécurité et API REST.
-* **Contenu** :
-  * Architecture en 11 apps spécialisées :
-    * `accounts` (Auth, JWT access/refresh, RBAC).
-    * `institutions` (Multi-tenant logique, agences, caisses).
-    * `identities` (Entités, identifiants externes, fusions).
-    * `dossiers` (Demandes de crédit, snapshots T0).
-    * `collecte` (Orchestration des formulaires).
-    * `imports` (Batches, uploads physiques, inspections).
-    * `mappings` (Configurations de mapping persistées).
-    * `quality` (Rapports Data Quality et diagnostics).
-    * `documents` (Pièces justificatives, métadonnées).
-    * `exports` (Génération des flux sortants).
-    * `audit` (Journal légal des événements).
-  * Séparation stricte dans chaque app : `models.py`, `serializers.py`, `selectors.py`, `services.py`, `permissions.py`, `api/views.py`.
-  * **Interdiction formelle** : Pas de logique métier dans les vues DRF.
-
-### Phase 7 — API REST d'Ingestion & Workflow d'Import
-* **Objectif** : Exposer le cycle de vie complet de l'importation via `/api/v1/...`.
-* **Workflow HTTP** :
-  1. `POST /api/v1/imports/` (upload multipart).
-  2. `GET /api/v1/imports/{id}/schema/` & `GET /api/v1/imports/{id}/mapping/` (inspection et suggestions).
-  3. `PUT /api/v1/imports/{id}/mapping/` (ajustement interactif).
-  4. `POST /api/v1/imports/{id}/validate/` (contrôle des règles métiers).
-  5. `GET /api/v1/imports/{id}/quality/` (rapport de qualité).
-  6. `GET /api/v1/imports/{id}/matches/` & `POST /api/v1/matches/{id}/resolve/` (résolution des doublons).
-  7. `POST /api/v1/imports/{id}/commit/` (persistance transactionnelle atomique PostgreSQL).
-
-### Phase 8 — Frontend React SPA : Ingestion & Dashboard
-* **Objectif** : Interface utilisateur riche, moderne et performante.
-* **Stack** : React 18+, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, TanStack Table, Recharts.
-* **Écrans** :
-  * Dashboard de supervision des flux.
-  * Interface d'import avec glisser-déposer de fichiers Excel/CSV.
-  * Matrice de mapping interactive avec drag & drop ou sélection intuitive.
-  * Tableau TanStack Table des anomalies filtrables par sévérité.
-  * Écran de résolution des doublons et ambiguïtés.
-
-### Phase 9 — Frontend React SPA : Collecte Terrain (Wizard 10 Étapes)
-* **Objectif** : Saisie fluide et guidée des dossiers de micro-crédit.
-* **Contenu** :
-  * Wizard en 10 étapes : Identité, Consentement, Ménage, Activité, Revenus/Charges, Dettes, Demande, Garanties, Documents, Synthèse.
-  * Formulaires pilotés par React Hook Form + validation UX immédiate via Zod.
-  * Mécanisme d'**autosave debounced** (requêtes `PATCH /api/v1/dossiers/{id}` sans bouton bloquant).
-  * Télédéclaration et téléversement de justificatifs (photos, reçus Mobile Money).
-
-### Phase 10 — Intégration du Moteur Décisionnel (`ds_engine`)
-* **Objectif** : Pont entre les données canoniques et les modèles de scoring.
-* **Contenu** :
-  * Génération du `CreditApplicationSnapshot` (T0).
-  * Exécution de l'algorithme de Bühlmann-Straub, de la recherche de cohorte Gower et du modèle LightGBM.
-  * Restitution des 3 poids, de l'offre alternative anti-surendettement et des explications.
-
----
-
-## 3. Stratégie de Branches Git
+## 1. Architecture Cible Globale
 
 ```text
-main
-  │
-  ├── feat/01-collecte-core        (Package Python pur, domaine, lecteurs)
-  ├── feat/02-collecte-engine      (Mapping, normalisation, validation, qualité, identité)
-  ├── feat/03-backend-django-drf   (Apps Django, ORM, API REST /api/v1/...)
-  ├── feat/04-frontend-react-spa   (Vite, Tailwind, shadcn/ui, TanStack Query/Table)
-  └── feat/05-scoring-bridge       (Snapshot T0, liaison ds_engine et restitution)
+                         REACT (SPA)
+                             │
+                          REST/JSON
+                             │
+                             ▼
+                      DJANGO + DRF
+                             │
+                    SERVICES APPLICATIFS
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+        ▼                    ▼                    ▼
+ MOTEUR COLLECTE        MOTEUR ANALYSE      MOTEUR INTELLIGENCE
+   Python pur            métier/config          Python pur
+  (packages/collecte)   (packages/analyse)   (packages/intelligence)
+        │                    │                    │
+        │                    │            ┌───────┴────────┐
+        │                    │            ▼                ▼
+        │                    │        DeepSeek          Local
+        │                    │         (Cloud)      (Ollama/vLLM)
+        │                    │
+        └─────────────┬──────┴─────────────┐
+                      ▼                    ▼
+                 POSTGRESQL           ds_engine
+                                           │
+                                           ▼
+                                  Analyse quantitative
+                                           │
+                      ┌────────────────────┴────────────────────┐
+                      ▼                                         ▼
+               Analyse factuelle                         Analyse qualitative
+                                                           + LLM (auditée)
+                      └────────────────────┬────────────────────┘
+                                           ▼
+                                  RAPPORT DE DOSSIER
+                                           │
+                                           ▼
+                                   DÉCISION HUMAINE
 ```
+
+---
+
+## 2. Socle et Structure Définitive du Dépôt
+
+```text
+CREDIBILIS/
+│
+├── backend/
+│   ├── manage.py
+│   ├── config/
+│   └── apps/
+│       ├── comptes/          # Authentification, JWT, RBAC
+│       ├── institutions/      # Multi-tenant logique, agences, caisses
+│       ├── profils/           # Profils métier et entités
+│       ├── produits/          # Produits de micro-crédit
+│       ├── dictionnaire/      # Définition configurable des données canoniques
+│       ├── collecte/          # Modèles de collecte et formulaires dynamiques
+│       ├── dossiers/          # Demandes de crédit, snapshots T0, valeurs
+│       ├── documents/         # Pièces justificatives et preuves
+│       ├── analyse/           # Cadres d'analyse, variables dérivées, règles
+│       ├── intelligence/      # Adaptateur Django vers credibilis_intelligence
+│       └── audit/             # Journalisation immuable et traçabilité
+│
+├── frontend/                  # React 18+ SPA (Vite, TypeScript, Tailwind, shadcn/ui)
+│
+├── packages/
+│   ├── collecte/
+│   │   └── credibilis_collecte/      # Ingestion, mapping, normalisation, qualité
+│   │
+│   ├── analyse/
+│   │   └── credibilis_analyse/       # Variables dérivées, ratios, contradictions, cadres
+│   │
+│   └── intelligence/
+│       └── credibilis_intelligence/  # Fournisseurs IA (DeepSeek, Local, Mock), routeur, tâches
+│
+├── ds_engine/                 # Risque statistique, cohortes Gower, Bühlmann-Straub, LightGBM
+├── docs/                      # Corpus documentaire de référence (00 à 16)
+└── tests/                     # Tests d'intégration transversaux
+```
+
+### Règle d'or de dépendance
+- **`packages/*`** : Python pur, testable sans Django, sans ORM, sans SQL.
+- **`backend/`** : Django, ORM, DRF, sécurité, transactions, permissions.
+- **`frontend/`** : React SPA uniquement, consommant exclusivement `/api/v1/...`.
+- **`ds_engine/`** : Modèles statistiques et d'apprentissage, alimentés par un snapshot canonique.
+
+---
+
+## 3. Les 12 Briques d'Implémentation (P0 à P11)
+
+### Brique P0 — Dictionnaire Configurable des Données (`DefinitionDonnee`)
+Le socle absolu. Aucune donnée n'est collectée sans définition préalable.
+- **Attributs clés** : code, libellé, description, catégorie métier, type de donnée, temporalité, unité, devise, rôle analytique, sensibilité, sources autorisées, niveau de vérification requis, usages autorisés.
+- **Classifications fondamentales** :
+  - *Nature* : `FACTUELLE`, `DECLAREE`, `OBSERVEE`, `APPRECIATION_QUALITATIVE`, `DERIVEE`, `RESULTAT_OBSERVE`.
+  - *Temporalité* : `STATIQUE`, `VALEUR_ACTUELLE`, `PHOTOGRAPHIE_T0`, `PERIODE`, `EVENEMENT`, `SERIE_TEMPORELLE`.
+  - *Rôle analytique* : `IDENTIFICATION_SEULE`, `DESCRIPTION`, `SEGMENTATION`, `VARIABLE_CANDIDATE`, `ENTREE_REGLE`, `VARIABLE_DERIVEE`, `PREUVE`, `CONFORMITE`, `RESULTAT_OBSERVE`, `DECISION`.
+
+### Brique P1 — Profils et Produits de Crédit
+- **Profils V1** : `SALARIE`, `COMMERCANT`, `AGRICULTEUR`, `ELEVEUR`, `ARTISAN`, `MICRO_ENTREPRISE`, `PME`, `PERSONNE_MORALE`.
+  - Hiérarchisation : un commerçant est une sous-catégorie d'activité indépendante.
+  - Multi-profils possibles pour une même entité physique, mais chaque dossier possède un unique `profil_instruction`.
+- **Produits V1** : `CREDIT_SALAIRE`, `CREDIT_FONDS_ROULEMENT`, `CREDIT_EQUIPEMENT`, `CREDIT_INTRANTS`, `CREDIT_CAMPAGNE`.
+
+### Brique P2 — Constructeur de Collecte (`ModeleCollecte`)
+- Formulaire résolu dynamiquement via l'équation :
+  $$\text{Formulaire} = (\text{Champs globaux} + \text{Champs profil} + \text{Champs produit} + \text{Surcharges institution}) - \text{Champs désactivés} + \text{Conditions}$$
+- Le frontend React ne code aucune condition en dur (`if (profil === 'AGRICULTEUR')`), il consomme `GET /api/v1/configurations/resoudre/?profil=...&produit=...`.
+
+### Brique P3 — Collecte Réelle & Formulaires Dynamiques
+- Modèles `DossierCredit`, `ValeurDonnee`, `ProvenanceDonnee`.
+- Une même variable peut avoir plusieurs valeurs provenant de sources distinctes (ex. CA déclaré par le client vs CA constaté sur relevé de compte) $\rightarrow$ permet la détection d'écarts.
+
+### Brique P4 — Provenance et Crédibilité de la Donnée
+- Traçabilité granulaire : valeur, source, date, agent, document, niveau de vérification, fraîcheur.
+- Calcul de l'**Indice de Confiance du Dossier** (ex. 68% = 55% vérifiées + 30% déclarées + 15% importées).
+
+### Brique P5 — Variables Dérivées
+- `DefinitionVariableDerivee` : formules auditables et déterministes.
+- Exemples : `anciennete_activite_mois`, `marge_disponible`, `ratio_endettement`, `croissance_ca_3_ans`, `volatilite_ca`, `nombre_retards_12_mois`, `solde_moyen_6_mois`.
+
+### Brique P6 — Analyse Quantitative
+- Moteur déterministe de calcul des ratios financiers (endettement, pression de remboursement).
+- Pont d'extraction vers `ds_engine` (`ScoringInput`).
+
+### Brique P7 — Analyse Qualitative
+- `CritereQualitatif` & `EvaluationQualitative`.
+- Critères évalués : maîtrise de l'activité, qualité de gestion, cohérence du projet, stabilité.
+- Chaque évaluation conserve le niveau, la justification textuelle de l'agent, et les preuves rattachées.
+
+### Brique P8 — Couche IA Indépendante (`credibilis_intelligence`)
+- Découplage complet vis-à-vis des fournisseurs (`FournisseurFactice`, `FournisseurDeepSeek`, `FournisseurLocal`).
+- Aiguillage intelligent par `RouteurIA` avec **règle d'or de non-fuite** : données sensibles avec modèle local indisponible $\rightarrow$ **abstention IA stricte** (aucun fallback cloud silencieux).
+- Sorties strictement structurées validées par des schémas Pydantic.
+- Tâches spécialisées : `analyse_qualitative`, `detecter_contradictions`, `synthetiser_dossier`, `diagnostic_donnees_manquantes`.
+
+### Brique P9 — Cadres d'Analyse Métier
+- `CadreAnalyse`, `SectionAnalyse`, `CritereAnalyse`, `RegleNotation`.
+- Règles et seuils configurables par institution sans modification de code.
+
+### Brique P10 — Simulation d'Offre Responsable
+- Simulateur multi-scénarios (montant, durée, taux, périodicité) recalculant l'échéance et la marge résiduelle.
+- Aide à la décision : aucun scénario n'est automatiquement accordé sans validation humaine.
+
+### Brique P11 — Rapport Global de Décision
+- Document de synthèse consolidé pour le comité de crédit : qualité des données, analyse financière, analyse qualitative, contradictions, données manquantes, scoring statistique, simulations, synthèse IA auditée, avis agent, décision finale humaine.
+
+---
+
+## 4. Premier Jalon Concret (La Colonne Vertébrale End-to-End)
+
+Avant de construire 50 écrans ou 100 règles, l'équipe livre et valide le flux de bout en bout :
+
+```text
+Admin crée profil AGRICULTEUR
+        ↓
+Admin crée produit CREDIT_INTRANTS
+        ↓
+Admin configure données et sections
+        ↓
+Admin publie la configuration de collecte
+        ↓
+Agent crée un dossier AGRICULTEUR
+        ↓
+React génère automatiquement le formulaire dynamique
+        ↓
+Agent remplit et soumet les informations
+        ↓
+Django stocke les valeurs et la provenance
+        ↓
+Moteur calcule les variables dérivées
+        ↓
+Analyse qualitative exécutée (FournisseurFactice)
+        ↓
+Rapport décisionnel minimal produit
+```
+
+---
+
+## 5. Répartition Opérationnelle de l'Équipe
+
+| Rôle | Périmètre | Responsabilités principales |
+|---|---|---|
+| **Lead / Architecture** | Django, DRF, PostgreSQL, Contrats | Modèles relationnels, migrations, sécurité RBAC, transactions, cohérence |
+| **Membre Collecte** | Ingestion, Moteur de collecte | `DefinitionDonnee`, normalisation, provenance, calcul indice qualité |
+| **Membre Métier** | Règles, Cadres d'analyse | Profils, produits, cadres d'analyse, critères qualitatifs, seuils de notation |
+| **Membre Data / IA** | DS Engine & Intelligence | `credibilis_intelligence`, prompts versionnés, pont scoring, modèles locaux |
+| **Membre Frontend** | React SPA | Configuration crédit, formulaires dynamiques, visualisation des dossiers, thème Light |
+
+---
+
+## 6. Règle d'Architecture Inviolable
+
+> **CREDIBILIS ne dépend pas d'un formulaire, d'une institution, d'un profil, d'un modèle IA ou d'un algorithme unique.**  
+> **Tout le système est articulé autour de contrats configurables, vérifiables et auditables.**
