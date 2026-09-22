@@ -832,37 +832,139 @@ POST /api/v1/credit-applications/{id}/decision/
 
 ---
 
-# 13. Relation avec le frontend
+# 13. Relation avec le Frontend (React SPA Découplée)
 
-Le frontend ne doit jamais contenir les règles métier fondamentales.
-
-```text
-React / TypeScript
-        |
-        v
-Django REST API
-        |
-        v
-Application Services
-        |
-        v
-Moteurs Python
-```
-
-Le frontend peut :
-
-- afficher un wizard ;
-- collecter des valeurs ;
-- afficher les anomalies ;
-- permettre de corriger ;
-- demander confirmation ;
-- visualiser les résultats.
-
-Le frontend ne doit pas décider :
+## 13.1 Décision Fondatrice : Zéro Django Templates, Zéro HTMX, Zéro Alpine
+Le frontend de CREDIBILIS est **strictement découplé** du backend. Django n'effectue aucun rendu HTML côté serveur.
 
 ```text
-si revenu > X alors client acceptable
+                FRONTEND
+        React + TypeScript + Vite
+        Tailwind CSS + shadcn/ui
+                  │
+                  │ HTTPS / JSON (/api/v1/...)
+                  ▼
+             DJANGO + DRF
+                  │
+      ┌───────────┼────────────┐
+      │           │            │
+      ▼           ▼            ▼
+ Auth/RBAC      API        Services métier
+      │                        │
+      └────────────┬───────────┘
+                   ▼
+         ADAPTATEURS DJANGO
+                   │
+         ┌─────────┴─────────┐
+         ▼                   ▼
+   PostgreSQL          Object Storage
+                             │
+                             ▼
+                 documents / fichiers
+
+                   +
+                   │
+                   ▼
+       MOTEURS PYTHON INDÉPENDANTS
+       ┌───────────────────────────┐
+       │ credibilis_collecte      │
+       │ analyse métier           │
+       │ feature engine           │
+       │ scoring bridge           │
+       └───────────────────────────┘
+                   │
+                   ▼
+               ds_engine
 ```
+
+## 13.2 Stack Technologique Frontend
+* **Core & Build** : React 18+, TypeScript, Vite
+* **Styling & Composants** : Tailwind CSS, shadcn/ui (Radix UI primitives)
+* **Routage** : React Router v6
+* **Gestion des Données Serveur & Cache** : TanStack Query (React Query)
+* **Gestion des Tables Complexes** : TanStack Table (pour les listes d'imports, anomalies, clients, doublons, audit)
+* **Formulaires & Validation UX** : React Hook Form, Zod
+* **Dataviz & Graphiques** : Recharts (jauges 3-tiers, histogrammes de cohortes, ratios d'effort)
+
+## 13.3 Structure Interne du Frontend
+```text
+frontend/
+├── src/
+│   ├── app/                    # Configuration globale, providers, theme
+│   ├── api/                    # Client HTTP (Axios/Fetch), interceptors JWT, contrats
+│   ├── components/             # Composants réutilisables (shadcn/ui : buttons, modals, cards)
+│   ├── features/               # Modules fonctionnels découpés par domaine
+│   │   ├── dashboard/          # Vue d'ensemble agents et superviseurs
+│   │   ├── collecte/           # Formulaire interactif et wizard d'instruction
+│   │   ├── clients/            # Fiches d'entités canoniques
+│   │   ├── dossiers/           # Instruction de crédits, simulation d'offres
+│   │   ├── imports/            # Ingestion de fichiers, inspection, validation
+│   │   ├── mapping/            # Interface de réconciliation des colonnes sources
+│   │   ├── qualite/            # Tableaux de bord Data Quality & anomalies
+│   │   ├── rapprochement/      # Résolution manuelle des doublons et ambiguïtés
+│   │   ├── documents/          # Visionneuse et téléversement de justificatifs
+│   │   ├── exports/            # Déclencheur et téléchargement d'exports
+│   │   └── audit/              # Journal des événements légaux et traçabilité
+│   ├── hooks/                  # Hooks réutilisables (useDebounce, useAuth, etc.)
+│   ├── lib/                    # Utilitaires (formatage devises FCFA, dates, calculs locaux)
+│   ├── routes/                 # Définition des routes et gardes d'authentification
+│   └── types/                  # Déclarations TypeScript alignées sur les schémas OpenAPI
+├── package.json
+└── vite.config.ts
+```
+
+## 13.4 Flux d'Ingestion Interactif (Import de Fichier)
+```text
+React SPA                                  Django DRF                     credibilis_collecte
+   │                                            │                                  │
+   │── POST multipart (/api/v1/imports/) ──────>│                                  │
+   │                                            │── Stockage physique temporaire   │
+   │                                            │── Appel moteur inspection ──────>│
+   │                                            │<─ ImportResult (feuilles, cols)──│
+   │<─ 201 Created (uuid, résumé source) ───────│                                  │
+   │                                            │                                  │
+   │── GET /api/v1/imports/{uuid}/schema ──────>│ (Renvoie colonnes détectées)     │
+   │── GET /api/v1/imports/{uuid}/mapping ─────>│ (Suggestions automatiques)       │
+   │                                            │                                  │
+   │   [L'utilisateur ajuste le mapping en UI]  │                                  │
+   │── PUT /api/v1/imports/{uuid}/mapping ─────>│ (Sauvegarde le mapping ajusté)   │
+   │                                            │                                  │
+   │── POST /api/v1/imports/{uuid}/validate ───>│── Exécution validation ─────────>│
+   │<─ Résumé (valides, anomalies, blocages) ───│<─ Diagnostic Data Quality ───────│
+   │                                            │                                  │
+   │── GET /api/v1/imports/{uuid}/matches ─────>│── Calcul des rapprochements ────>│
+   │<─ Doublons probables / ambigus ────────────│<─ Liste candidats ───────────────│
+   │                                            │                                  │
+   │   [Résolution manuelle par l'agent]        │                                  │
+   │── POST /api/v1/matches/{id}/resolve ──────>│ (SAME_ENTITY / DIFFERENT_ENTITIES)
+   │                                            │                                  │
+   │── POST /api/v1/imports/{uuid}/commit ─────>│── Transaction atomique ORM ─────>│ (PostgreSQL)
+   │<─ 200 OK (Import finalisé) ────────────────│                                  │
+```
+
+## 13.5 Collecte Terrain : Wizard 10 Étapes et Autosave
+Pour l'instruction en agence ou sur le terrain, React orchestre un wizard en 10 étapes distinctes :
+1. **Étape 1 : Identité** (Nom, prénom, surnom, contact, pièces d'identité)
+2. **Étape 2 : Consentement** (Accord légal de traitement des données personnelles)
+3. **Étape 3 : Ménage** (Composition familiale, personnes à charge, statut logement)
+4. **Étape 4 : Activité** (Secteur, commerce, ancienneté, emplacement)
+5. **Étape 5 : Revenus & Charges** (Chiffre d'affaires, dépenses régulières, saisonnalité)
+6. **Étape 6 : Dettes & Engagements** (Encours bancaires, tontines, dettes fournisseurs)
+7. **Étape 7 : Demande de Crédit** (Montant, objet, durée souhaitée, périodicité)
+8. **Étape 8 : Garanties** (Cautions morales, gages matériels, nantissements)
+9. **Étape 9 : Documents & Pièces** (Photos justificatives, relevés Mobile Money)
+10. **Étape 10 : Vérification Finale & Synthèse** (Audit trail et soumission au scoring)
+
+### Mécanisme d'Autosave :
+* Saisie utilisateur en continu.
+* Déclenchement automatique via **debounce (ex: 800ms)** sans bouton de soumission bloquant.
+* Requête `PATCH /api/v1/dossiers/{uuid}` orchestrée par une mutation TanStack Query.
+* Indicateur visuel d'état discret : *"Enregistrement..."* $\rightarrow$ *"✓ Enregistré à 14:02"*.
+
+## 13.6 Règle de Répartition des Validations (Zod vs Backend)
+* **Zod (Frontend)** : Améliore le confort et la réactivité de l'UX (vérification immédiate du format du numéro de téléphone, obligation de remplissage, bornes numériques simples).
+* **Services Applicatifs & Moteurs (Backend)** : **Détiennent seuls l'autorité définitive**. Même si une requête contourne le client React, le backend valide la conformité réglementaire, la cohérence financière et l'intégrité des données avant toute persistance ou calcul de score.
+
 
 ---
 

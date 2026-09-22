@@ -67,10 +67,15 @@ Le backend expose des contrats REST documentés. Le frontend n'accède jamais di
 
 Isolation par `institution_id` et permissions. Une architecture DB par tenant n'est pas nécessaire au hackathon.
 
-## ADR-014 — React/TypeScript est la cible frontend, sans couplage avec le domaine
-**Statut : ACCEPTÉ POUR LA CIBLE**
+## ADR-014 — Frontend React SPA exclusif et Django REST Framework pur
+**Statut : ACCEPTÉ ET FERME**
 
-Le frontend peut évoluer indépendamment tant qu'il respecte l'API.
+Pas de Django Templates. Pas de HTMX. Pas d'Alpine. Django sert uniquement de backend applicatif via Django REST Framework (DRF).
+
+- **Frontend** : SPA indépendante (React 18+, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, TanStack Table, React Hook Form, Zod, Recharts).
+- **Backend** : Django + DRF servant des endpoints HTTP JSON sous `/api/v1/...`.
+- **Règle absolue** : Aucun écran utilisateur métier ne dépend du rendu serveur Django. Zod assure la validation UX immédiate ; la validation métier définitive reste au niveau des services applicatifs et des moteurs Python.
+
 
 ## ADR-015 — Celery/Redis uniquement si nécessaire
 **Statut : ACCEPTÉ**
