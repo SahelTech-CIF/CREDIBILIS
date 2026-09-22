@@ -1,51 +1,83 @@
-# Décisions d'architecture
+# Registre des décisions d'architecture (ADR)
 
 ## ADR-001 — Django est l'hôte applicatif
-**Statut : accepté**
+**Statut : ACCEPTÉ**
 
-Django + Django REST Framework sont retenus pour HTTP/API, auth, permissions, ORM, persistance, administration et orchestration. FastAPI/Flask ne sont pas retenus pour la V1 métier.
+Django + Django REST Framework gèrent HTTP, auth, permissions, ORM, transactions, admin et API.
 
-## ADR-002 — Le moteur de collecte est indépendant de Django
-**Statut : accepté**
+FastAPI/Flask ne sont pas ajoutés en parallèle pour la V1.
 
-Le coeur de collecte est un package Python pur. Aucun import `django.*` ou `rest_framework.*` dans ce package.
+## ADR-002 — Le cœur de collecte est Python pur
+**Statut : ACCEPTÉ**
 
-## ADR-003 — Identifiant interne + identifiants externes
-**Statut : accepté**
+Aucun import `django.*` ou `rest_framework.*` dans le package de collecte.
 
-Chaque entité possède un ID CREDIBILIS interne. Les identifiants d'une institution sont stockés séparément avec leur contexte.
+## ADR-003 — PostgreSQL est la persistance de référence
+**Statut : ACCEPTÉ**
+
+La base applicative utilise PostgreSQL. Les fichiers importés restent des sources, pas la base de vérité applicative.
 
 ## ADR-004 — Schéma canonique versionné
-**Statut : accepté**
+**Statut : ACCEPTÉ**
 
-Chaque source CSV/XLSX/API est mappée vers un schéma canonique CREDIBILIS. Les formats externes ne deviennent pas les modèles internes.
+Toute source institutionnelle est transformée vers un schéma interne stable.
 
-## ADR-005 — Provenance obligatoire pour les données critiques
-**Statut : accepté**
+## ADR-005 — Identité interne + identifiants externes
+**Statut : ACCEPTÉ**
 
-Les valeurs déclarées, importées, calculées et vérifiées ne doivent pas être confondues.
+Une entité possède un UUID interne et zéro ou plusieurs identifiants externes contextualisés par institution.
 
-## ADR-006 — Pas de fusion agressive des personnes
-**Statut : accepté**
+## ADR-006 — Pas de fusion agressive
+**Statut : ACCEPTÉ**
 
-Le rapprochement produit EXACT/PROBABLE/AMBIGU/AUCUN. Un cas ambigu nécessite une validation humaine.
+Nom/prénom seul ne suffit jamais à fusionner automatiquement deux personnes.
 
-## ADR-007 — Import et export font partie du même moteur
-**Statut : accepté**
+## ADR-007 — Provenance comme donnée de premier ordre
+**Statut : ACCEPTÉ**
 
-Formats V1 : CSV, XLSX, JSON. Les API institutionnelles viendront ensuite via adaptateurs.
+Les valeurs critiques doivent être traçables jusqu'à leur source.
 
-## ADR-008 — `ds_engine` reste séparé de la collecte
-**Statut : accepté**
+## ADR-008 — Import en deux temps : preview puis commit
+**Statut : ACCEPTÉ**
 
-`ds_engine/` consomme des données canoniques/features, pas des fichiers institutionnels ou des QuerySets.
+Un upload institutionnel n'est pas immédiatement persisté comme vérité métier.
 
-## ADR-009 — Modèle statistique différent de la décision de crédit
-**Statut : accepté**
+## ADR-009 — `ds_engine` séparé de l'application métier
+**Statut : ACCEPTÉ**
 
-Le modèle aide la décision ; il ne remplace pas le processus institutionnel.
+Le moteur Data Science reçoit des données préparées via un bridge.
 
-## ADR-010 — La documentation est un contrat d'équipe
-**Statut : accepté**
+## ADR-010 — Modèle statistique ≠ décision
+**Statut : ACCEPTÉ**
 
-En cas de contradiction code/documentation : signaler, décider, documenter, puis implémenter. Ne pas faire évoluer silencieusement l'architecture.
+Une estimation statistique ne remplace pas la politique institutionnelle ni la décision humaine.
+
+## ADR-011 — Analyse métier configurable
+**Statut : ACCEPTÉ**
+
+Ratios, formules et seuils doivent être versionnés et configurables, pas codés en dur dans les views.
+
+## ADR-012 — API-first
+**Statut : ACCEPTÉ**
+
+Le backend expose des contrats REST documentés. Le frontend n'accède jamais directement à PostgreSQL.
+
+## ADR-013 — Multi-institution logique dans une DB commune pour V1
+**Statut : ACCEPTÉ**
+
+Isolation par `institution_id` et permissions. Une architecture DB par tenant n'est pas nécessaire au hackathon.
+
+## ADR-014 — React/TypeScript est la cible frontend, sans couplage avec le domaine
+**Statut : ACCEPTÉ POUR LA CIBLE**
+
+Le frontend peut évoluer indépendamment tant qu'il respecte l'API.
+
+## ADR-015 — Celery/Redis uniquement si nécessaire
+**Statut : ACCEPTÉ**
+
+Pas d'infrastructure asynchrone ajoutée avant d'avoir un besoin réel de traitements longs.
+
+## ADR-016 — Documentation = contrat de coordination
+**Statut : ACCEPTÉ**
+
+Un changement structurant doit mettre à jour l'ADR et la documentation avant ou avec le code.

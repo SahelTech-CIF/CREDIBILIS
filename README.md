@@ -2,50 +2,74 @@
 
 Infrastructure d'aide à la décision de crédit pour institutions financières et microfinances.
 
-## État actuel
-Le dépôt contient un moteur Data Science expérimental dans `ds_engine/`. La nouvelle priorité est l'**application métier**, en commençant par un moteur de collecte indépendant.
+## À lire avant de développer
 
-## Décisions retenues
-- Django + Django REST Framework pour l'application, les API, l'authentification, les permissions et la persistance.
-- PostgreSQL pour la base de données.
-- Un moteur de collecte **Python indépendant de Django** pour import/export, mapping, normalisation, validation, identité, rapprochement, provenance et qualité.
-- `ds_engine/` reste séparé et consomme des données canoniques préparées en amont.
-- Le scoring est une aide à la décision, pas la décision elle-même.
+- [Règles agents et développeurs](AGENTS.md)
+- [Documentation](docs/README.md)
+- [Architecture complète](docs/00_ARCHITECTURE_COMPLETE.md)
+- [État actuel vs cible](docs/14_ETAT_ACTUEL_VS_CIBLE.md)
 
-> Les données présentes dans le dépôt sont synthétiques. Elles ne constituent pas une validation statistique sur une population réelle.
+## Vision
 
-## Architecture
+CREDIBILIS est composé de moteurs Python indépendants orchestrés par une application Django/DRF.
+
 ```text
 Sources institutionnelles
-CSV / XLSX / JSON / API
-          |
-          v
-Moteur de collecte Python
-          |
-          v
-Schéma canonique
-          |
-          v
-Django / DRF / PostgreSQL
-          |
-          +---- Application métier
-          |
-          +---- ds_engine
-                    |
-                    v
-             Aide à la décision
+    -> Moteur de collecte Python
+    -> Schéma canonique
+    -> Django / PostgreSQL
+    -> Dossier T0
+    -> Analyse métier
+    -> Feature Engine
+    -> ds_engine
+    -> Aide à la décision
+    -> Workflow humain
 ```
 
-## Priorité V1 : moteur de collecte
-Responsabilités : lire des sources, mapper vers un schéma canonique, normaliser, valider, conserver la provenance, identifier les entités, rapprocher les doublons, produire des diagnostics de qualité et exporter.
+## Priorité actuelle
 
-## Documentation de référence
-- [Architecture](docs/Architecture.md)
-- [Décisions d'architecture](docs/01_DECISIONS_ARCHITECTURE.md)
-- [Spécification du moteur de collecte](docs/02_MOTEUR_COLLECTE.md)
-- [Contrats de données](docs/03_CONTRATS_DONNEES.md)
-- [Plan d'attaque](docs/04_PLAN_ATTAQUE.md)
-- [Règles pour développeurs et agents IA](AGENTS.md)
+**Construire le moteur de collecte de données.**
 
-## Règle d'équipe
-Avant toute modification structurante, lire la documentation. Si le code et les docs se contredisent, signaler la contradiction, prendre une décision, la documenter, puis coder.
+Il doit gérer :
+
+- CSV / XLSX / JSON ;
+- import et export ;
+- mapping par institution ;
+- normalisation ;
+- validation ;
+- identification unique ;
+- rapprochement de doublons ;
+- provenance ;
+- data quality.
+
+Il doit être testable sans Django.
+
+## Stack cible
+
+### Backend
+- Python
+- Django
+- Django REST Framework
+- PostgreSQL
+
+### Collecte
+- Python pur pour le domaine
+- pandas / openpyxl aux frontières fichiers lorsque utile
+
+### Data Science existant
+- pandas
+- NumPy
+- scikit-learn
+- LightGBM
+- NetworkX
+- joblib
+
+### Frontend cible
+- React
+- TypeScript
+
+## État actuel
+
+`ds_engine/` existe déjà. Les autres modules de l'application métier sont progressivement à construire.
+
+Les données actuelles du moteur sont synthétiques : ne pas présenter ses performances comme une validation sur données réelles.

@@ -1,28 +1,96 @@
-# AGENTS.md — Règles de travail CREDIBILIS
+# AGENTS.md — Constitution de développement CREDIBILIS
 
-## Ordre de lecture obligatoire
+Ce fichier s'applique à tous les humains et agents IA qui modifient le dépôt.
+
+## 1. Lecture obligatoire
+
+Avant de coder :
+
 1. `README.md`
-2. `docs/Architecture.md`
+2. `docs/00_ARCHITECTURE_COMPLETE.md`
 3. `docs/01_DECISIONS_ARCHITECTURE.md`
-4. `docs/02_MOTEUR_COLLECTE.md`
-5. `docs/03_CONTRATS_DONNEES.md`
-6. `docs/04_PLAN_ATTAQUE.md`
+4. `docs/14_ETAT_ACTUEL_VS_CIBLE.md`
+5. document du module concerné
 
-## Principe non négociable
-Le moteur de collecte est un package **Python pur**, indépendant de Django.
-Django peut importer le moteur de collecte. Le moteur de collecte ne doit pas importer Django ou DRF.
+## 2. Règle de dépendance
 
-## Priorité actuelle
-Construire le moteur de collecte : import/export, mapping, schéma canonique, normalisation, validation, identité, rapprochement, provenance et qualité. La refonte de `ds_engine/` n'est pas la priorité.
+`packages/collecte` est Python pur.
 
-## Règles
-- Pas de logique métier dans les views/serializers Django.
-- Pas de FastAPI/Flask en parallèle sans décision documentée.
-- Pas de fusion automatique d'entités sur nom/prénom seul.
-- Les données synthétiques ne doivent pas être présentées comme une validation réelle du modèle.
-- Toute décision structurante doit être documentée avant ou avec le code.
-- Toute modification doit préciser fichiers touchés, tests ajoutés, limites et risques de compatibilité.
-- Les tests du coeur du moteur de collecte doivent fonctionner sans `DJANGO_SETTINGS_MODULE`.
+Interdits dans le cœur :
 
-## Definition of Done
-Une tâche est terminée si elle respecte l'architecture, possède des tests, gère les erreurs attendues, conserve la provenance quand nécessaire, ne casse pas les contrats et met à jour la documentation si le comportement public change.
+```text
+django.*
+rest_framework.*
+QuerySet
+HttpRequest
+HttpResponse
+Model Django
+```
+
+Django peut importer le moteur. L'inverse est interdit.
+
+## 3. Ne pas confondre cible et code existant
+
+Un composant documenté peut ne pas encore être implémenté.
+
+Toujours vérifier le dépôt réel avant d'annoncer qu'une capacité existe.
+
+## 4. Plan avant modification importante
+
+Répondre / documenter :
+
+```text
+OBJECTIF
+FICHIERS MODIFIÉS
+CONTRATS IMPACTÉS
+TESTS
+RISQUES
+HORS PÉRIMÈTRE
+```
+
+## 5. Interdictions
+
+Sans ADR explicite, ne pas :
+- ajouter FastAPI ou Flask ;
+- ajouter un microservice ;
+- ajouter Celery/Redis ;
+- ajouter une vector DB ;
+- refactorer tout `ds_engine` ;
+- déplacer toute l'arborescence ;
+- créer une logique métier dans une view ou serializer ;
+- utiliser `eval()` sur des formules externes ;
+- fusionner des personnes sur nom/prénom seul.
+
+## 6. Données synthétiques
+
+Le dataset actuel est synthétique. Aucun chiffre de performance ne doit être présenté comme une validation réelle sans données réelles appropriées.
+
+## 7. Tests
+
+Pour le moteur de collecte : tests sans Django obligatoires.
+
+Pour les adaptateurs Django : tests d'intégration séparés.
+
+## 8. Documentation
+
+Toute modification d'un contrat public ou d'une décision d'architecture met à jour les docs dans la même PR.
+
+## 9. Rapport après implémentation
+
+Toujours donner :
+
+```text
+FAIT
+NON FAIT
+TESTS EXÉCUTÉS
+RÉSULTATS
+LIMITES
+DOCS MODIFIÉES
+```
+
+## 10. Vérité du projet
+
+- le code décrit ce qui existe ;
+- les docs décrivent la cible décidée ;
+- une contradiction doit être signalée et résolue ;
+- aucun agent ne doit inventer silencieusement une nouvelle architecture.
