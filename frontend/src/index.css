@@ -4,24 +4,39 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white min-h-screen;
+    @apply bg-[#070B12] text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white min-h-screen;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.05) 0px, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.9) 0px, transparent 100%);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.15), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(245, 158, 11, 0.08), transparent),
+      radial-gradient(ellipse 50% 30% at 10% 90%, rgba(99, 102, 241, 0.08), transparent);
     background-attachment: fixed;
   }
 }
 
 @layer utilities {
+  .glass-panel {
+    @apply bg-slate-900/60 backdrop-blur-2xl border border-slate-800/80 shadow-2xl;
+  }
   .glass-card {
-    @apply bg-slate-900/70 backdrop-blur-xl border border-slate-800/80 shadow-2xl;
+    @apply bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-xl border border-slate-800/70 shadow-xl transition-all duration-300;
+  }
+  .glass-card-hover {
+    @apply hover:border-emerald-500/40 hover:shadow-emerald-950/30 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300;
+  }
+  .glass-card-amber {
+    @apply hover:border-amber-500/40 hover:shadow-amber-950/30 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300;
   }
   .glass-input {
-    @apply bg-slate-950/60 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all;
+    @apply bg-slate-950/70 border border-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/80 transition-all;
   }
-  .glass-header {
-    @apply bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80;
+  .glass-pill {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border backdrop-blur-md;
+  }
+  .glow-emerald {
+    box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.3);
+  }
+  .glow-amber {
+    box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
   }
 }
 
@@ -31,12 +46,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(8, 12, 20, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.6);
+  background: rgba(51, 65, 85, 0.5);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.6);
 }
