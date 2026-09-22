@@ -3,6 +3,7 @@
 ### 🚀 Démarrage rapide pour les agents et membres
 - **Point d'entrée obligatoire : [AGENT_START_HERE.md](AGENT_START_HERE.md)**
 - **Index des données et profils : [00_INDEX_DONNEES_PROFILS.md](00_INDEX_DONNEES_PROFILS.md)**
+- **Guide d'intégration : [INTEGRATION_DANS_LE_DEPOT.md](INTEGRATION_DANS_LE_DEPOT.md)**
 - **Coordination d'équipe : [docs/coordination/ROLE_INDEX.md](coordination/ROLE_INDEX.md)**
 
 ---
