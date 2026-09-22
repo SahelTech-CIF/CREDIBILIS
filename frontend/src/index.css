@@ -4,54 +4,54 @@
 
 @layer base {
   body {
-    @apply bg-[#070B12] text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white min-h-screen;
+    @apply bg-slate-50 text-slate-800 font-sans antialiased selection:bg-emerald-600 selection:text-white min-h-screen;
     background-image: 
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.15), transparent),
-      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(245, 158, 11, 0.08), transparent),
-      radial-gradient(ellipse 50% 30% at 10% 90%, rgba(99, 102, 241, 0.08), transparent);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.06), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(245, 158, 11, 0.04), transparent),
+      radial-gradient(ellipse 50% 30% at 10% 90%, rgba(99, 102, 241, 0.04), transparent);
     background-attachment: fixed;
   }
 }
 
 @layer utilities {
   .glass-panel {
-    @apply bg-slate-900/60 backdrop-blur-2xl border border-slate-800/80 shadow-2xl;
+    @apply bg-white/95 backdrop-blur-xl border border-slate-200 shadow-sm;
   }
   .glass-card {
-    @apply bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-xl border border-slate-800/70 shadow-xl transition-all duration-300;
+    @apply bg-white backdrop-blur-md border border-slate-200/90 shadow-sm transition-all duration-200;
   }
   .glass-card-hover {
-    @apply hover:border-emerald-500/40 hover:shadow-emerald-950/30 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300;
+    @apply hover:border-emerald-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200;
   }
   .glass-card-amber {
-    @apply hover:border-amber-500/40 hover:shadow-amber-950/30 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300;
+    @apply hover:border-amber-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200;
   }
   .glass-input {
-    @apply bg-slate-950/70 border border-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/80 transition-all;
+    @apply bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all;
   }
   .glass-pill {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border backdrop-blur-md;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border;
   }
   .glow-emerald {
-    box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.15);
   }
   .glow-amber {
-    box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.15);
   }
 }
 
-/* Custom scrollbars */
+/* Modern clean scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(8, 12, 20, 0.8);
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.5);
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.6);
+  background: #94a3b8;
 }
