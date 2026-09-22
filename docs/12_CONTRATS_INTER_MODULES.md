@@ -115,12 +115,64 @@ warnings
 created_at
 ```
 
-## 11. Erreurs techniques vs anomalies métier
+## 11. ContexteIA
+
+```text
+dossier_id
+profil
+secteur_activite?
+variables (dict anonymisé)
+observations (list[str])
+donnees_declarees (dict)
+donnees_verifiees (dict)
+metadonnees (dict)
+```
+
+## 12. RequeteIA / ReponseIA
+
+```text
+RequeteIA:
+- prompt
+- contexte (ContexteIA)
+- tache (str)
+- version_prompt (str)
+- institution_id?
+- niveau_sensibilite (NiveauSensibiliteIA)
+
+ReponseIA:
+- contenu_texte
+- donnees_structurees?
+- fournisseur
+- modele
+- version_prompt
+- duree_ms
+- horodatage
+```
+
+## 13. ExecutionIAJournal (Audit Immuable)
+
+```text
+id (UUIDv4)
+dossier_id
+tache
+fournisseur
+modele
+version_prompt
+empreinte_entree (SHA256)
+duree_ms
+horodatage (ISO-8601 UTC)
+succes (bool)
+reponse_structuree? (JSON)
+erreur? (str)
+```
+
+## 14. Erreurs techniques vs anomalies métier
 
 ### Erreur technique
-Impossible d'ouvrir le fichier, stockage indisponible, corruption interne.
+Impossible d'ouvrir le fichier, stockage indisponible, corruption interne, timeout fournisseur IA.
 
 ### Anomalie métier
-Date invalide, champ manquant, doublon ambigu.
+Date invalide, champ manquant, doublon ambigu, contradiction déclaratif vs vérifié.
 
 Les deux ne doivent pas être mélangés.
+

@@ -86,3 +86,29 @@ Pas d'infrastructure asynchrone ajoutée avant d'avoir un besoin réel de traite
 **Statut : ACCEPTÉ**
 
 Un changement structurant doit mettre à jour l'ADR et la documentation avant ou avec le code.
+
+## ADR-017 — Découplage de la couche IA (FournisseurIA & RouteurIA)
+**Statut : ACCEPTÉ ET VERROUILLÉ**
+
+CREDIBILIS ne dépend ni de DeepSeek, ni d'Ollama, ni d'un modèle précis. CREDIBILIS dépend d'un contrat `FournisseurIA`.
+- Package pur Python `packages/intelligence/credibilis_intelligence/` sans import Django, ORM ou SQL.
+- Fournisseurs modulaires : `FournisseurFactice` (déterministe, tests/CI à 0 coût), `FournisseurDeepSeek` (Cloud API), `FournisseurLocal` (Ollama/vLLM/llama.cpp).
+- `RouteurIA` : Aiguillage contextuel selon le niveau de sensibilité. **Règle d'or** : Si données sensibles et modèle local indisponible $\rightarrow$ **abstention IA stricte** (aucun fallback cloud silencieux).
+- Sorties structurées Pydantic obligatoires pour toutes les tâches d'analyse.
+- Interdiction formelle : Le LLM ne prend jamais la décision d'octroi de crédit (`ACCEPTER`/`REFUSER`).
+
+## ADR-018 — Architecture MCP Agentique sécurisée
+**Statut : ACCEPTÉ**
+
+L'intégration des agents autonomes et assistants IA repose sur le Model Context Protocol (MCP) branché exclusivement sur les endpoints DRF et les services applicatifs de CREDIBILIS (`Agent IA` $\rightarrow$ `MCP` $\rightarrow$ `Django/DRF` $\rightarrow$ `Services Métier` $\rightarrow$ `PostgreSQL`).
+- Strictement aucun accès direct SQL ou DB brute par le serveur MCP.
+- Outils MCP audités, traçables et limités aux consultations et simulations contrôlées.
+
+## ADR-019 — Thème 100% Light et Design System bancaire moderne
+**Statut : ACCEPTÉ ET APPLIQUÉ**
+
+L'ensemble de l'interface utilisateur frontend (React SPA) adopte un thème 100% Light inspiré des standards bancaires institutionnels contemporains (Linear Light, Stripe, Mercury) :
+- Palette claire : fonds blancs (`#ffffff`) et gris ardoise ultra-doux (`#f8fafc`), cartes aux bordures subtiles (`#e2e8f0`).
+- Typographie soignée, contrastes élevés et badges d'état lisibles pour les agents de terrain et analystes de crédit.
+- Proscription absolue du mode sombre ou de contrastes agressifs non adaptés à la consultation de dossiers financiers.
+

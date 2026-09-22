@@ -132,7 +132,29 @@ Le dépôt contient déjà ce moteur. Il doit être traité comme un composant s
 
 ---
 
-## 8. Module `decisions`
+## 8. Module `intelligence` (`credibilis_intelligence`)
+
+### Responsabilité
+Fournir les synthèses qualitatives, détection de contradictions et diagnostics textuels via un contrat unifié `FournisseurIA`, sans dépendance à un modèle ou fournisseur précis.
+
+### Entrées
+- `ContexteIA` (données anonymisées, observations, ratios, sans PII non requises) ;
+- `TacheIA` (`analyse_qualitative`, `detecter_contradictions`, `synthetiser_dossier`, `diagnostic_donnees_manquantes`) ;
+- `NiveauSensibiliteIA` ;
+- Schéma Pydantic attendu.
+
+### Sorties
+- Objet typé Pydantic validé (`AnalyseQualitativeSchema`, `RapportContradictionsSchema`, etc.) ;
+- Entrée de journal d'audit `ExecutionIAJournal` (empreinte SHA256, horodatage UTC, modèle, durée ms).
+
+### Ne fait pas
+- Ne décide jamais l'octroi (`ACCEPTER` / `REFUSER`) ;
+- Ne lit jamais directement PostgreSQL ni l'ORM Django ;
+- Ne transmet jamais de données sensibles au cloud si le modèle local est indisponible (abstention stricte).
+
+---
+
+## 9. Module `decisions`
 
 ### Responsabilité
 Gérer le workflow institutionnel de décision.
@@ -154,7 +176,7 @@ Gérer le workflow institutionnel de décision.
 
 ---
 
-## 9. Module `audit`
+## 10. Module `audit`
 
 ### Responsabilité
 Tracer les opérations sensibles.
@@ -169,20 +191,23 @@ ENTITY_MERGED
 CREDIT_APPLICATION_SUBMITTED
 ANALYSIS_EXECUTED
 SCORING_EXECUTED
+IA_EXECUTION_COMPLETED
 DECISION_RECORDED
 EXPORT_CREATED
 ```
 
 ---
 
-## 10. Matrice de dépendances
+## 11. Matrice de dépendances
 
 | Module | Peut dépendre de | Ne doit pas dépendre de |
 |---|---|---|
 | collecte | stdlib, libs parsing | Django, ds_engine |
 | dossiers | contrats domaine | frontend, ds_engine direct |
 | analyse_metier | domaine, parser sécurisé | Django views |
+| intelligence | stdlib, urllib, pydantic | Django, ORM, SQL, frontend |
 | feature_engine | domaine historique | frontend |
 | scoring_bridge | feature contracts, ds_engine | Django ORM |
 | backend Django | tous les packages publics | internals non publics |
 | frontend | API HTTP | DB, moteurs Python |
+
